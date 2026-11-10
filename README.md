@@ -39,7 +39,19 @@ The dataset isn't included in this repo (it's ~700 MB). To run the notebook, dow
 - **The model overfits heavily on small data.** On the 1,000-image subset, training accuracy hits ~100% within a few epochs while validation accuracy plateaus around 63-66%. That's only ~8 images per breed, which isn't enough to generalise.
 - **Swapping the model didn't help.** Replacing MobileNetV2 with EfficientNetV2-B0 made no meaningful difference (63% vs 66%, a gap of only 6 images on a 200-image validation set). The bottleneck is the amount of data, not the model architecture.
 - **Training accuracy isn't real accuracy.** The full model's 99.9% is on images it trained on. On my own photos it got some breeds right but confused similar-looking ones (e.g. a chocolate Labrador predicted as a German short-haired pointer), which fits the validation numbers far better.
-- **Classifiers always pick a class.** When given a photo of a person, the model still confidently predicted a dog breed, because it has no "not a dog" option.
+- **Classifiers always pick a class.** When given a photo of a person, the model still confidently predicted a dog breed, because it has no "not a dog" option. I followed this up with MC dropout (below).
+
+## Follow-up: making the model show when it's unsure
+
+Softmax forces the 120 outputs to sum to 1, so the model has to spread all its confidence across breeds even when the photo isn't a dog. In [`mc_dropout/`](mc_dropout/) I added dropout before the output layer, kept it on at prediction time and averaged 30 passes per image (MC dropout, an approximation to Bayesian inference over the weights). Tested on 100 photos of people, averaged over 4 training runs:
+
+| | Baseline | MC dropout |
+|---|---|---|
+| Dog accuracy (validation) | 81.0% | 80.9% |
+| Mean confidence on photos of people | 57.2% | 32.4% |
+| People photos under 50% confidence | 44% | 87% |
+
+Confidence on people roughly halved with no loss of dog accuracy. Full setup, per-run results and limitations are in [`mc_dropout/RESULTS.md`](mc_dropout/RESULTS.md).
 
 ## Problems I ran into
 
@@ -50,7 +62,7 @@ The dataset isn't included in this repo (it's ~700 MB). To run the notebook, dow
 
 - **Data augmentation** (random flips, crops, brightness) to reduce overfitting.
 - **Fine-tuning** the pretrained base model instead of only training the output layer.
-- **A proper validation split on the full dataset** to get an honest accuracy figure.
+- **A proper validation split on the full dataset** to get an honest accuracy figure. (The MC dropout experiment uses an 80/20 split and gets about 81%.)
 - **Submit to Kaggle** to get a test-set score.
 
 ## Tools
