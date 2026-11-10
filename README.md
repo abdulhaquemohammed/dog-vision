@@ -53,6 +53,16 @@ Softmax forces the 120 outputs to sum to 1, so the model has to spread all its c
 
 Confidence on people roughly halved with no loss of dog accuracy. Full setup, per-run results and limitations are in [`mc_dropout/RESULTS.md`](mc_dropout/RESULTS.md).
 
+I then compared it with temperature scaling from [Guo et al. (2017)](https://arxiv.org/abs/1706.04599), testing on a held-out half of the validation set (mean of 4 runs):
+
+| | Calibration error (ECE) on dogs | Confidence on people | Separating dogs from people (AUROC) |
+|---|---|---|---|
+| Baseline | 0.061 | 53.7% | 0.881 |
+| Temperature scaling | 0.029 | 40.2% | 0.907 |
+| MC dropout | 0.029 | 32.8% | 0.944 |
+
+Temperature scaling halves calibration error, matching the paper, but because it's one number applied to every image it lowers confidence on dogs and people together. MC dropout calibrates just as well and separates the two better. Details in [`mc_dropout/RESULTS.md`](mc_dropout/RESULTS.md).
+
 ## Problems I ran into
 
 - **Keras 3 vs TensorFlow Hub:** newer TensorFlow ships with Keras 3, which doesn't accept `hub.KerasLayer`. Fixed by setting `TF_USE_LEGACY_KERAS=1` before importing TensorFlow.
